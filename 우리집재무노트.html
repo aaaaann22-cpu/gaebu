@@ -290,7 +290,14 @@ function rBud(){
       <div class="bi-icon" style="background:var(--sage-l)">${g.ic}</div>
       <div class="bi-info"><div class="bi-name">${g.n}${bd}<span class="bi-chev ${op?'open':''}">▼</span></div>
       ${gt>0?`<div class="pb-wrap" style="margin-top:4px"><div class="pb pb-sage" style="width:${pc}%"></div></div>`:''}<div class="bi-meta">${gt>0?`예산 ${W(gt)} · 납부 ${W(gp)}`:'항목 없음'}</div></div>
-      <div class="bi-right"><div class="bi-paid ${gr>0?'c-r':gt>0?'c-g':'c-go'}">${gt>0?W(gp):'-'}</div><div class="bi-sub">${gr>0?`잔금 ${W(gr)}`:gt>0?'완납':''}</div></div>
+      <div class="bi-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <div style="display:flex;gap:4px" onclick="event.stopPropagation()">
+          <button class="bx bx-e" onclick="eGr(${g.id})">수정</button>
+          <button class="bx bx-d" onclick="dGr(${g.id})">삭제</button>
+        </div>
+        <div class="bi-paid ${gr>0?'c-r':gt>0?'c-g':'c-go'}">${gt>0?W(gp):'-'}</div>
+        <div class="bi-sub">${gr>0?`잔금 ${W(gr)}`:gt>0?'완납':''}</div>
+      </div>
     </div>
     ${op?`<div class="bi-kids">
       ${g.items.length===0?'<div class="empty" style="padding:14px">항목을 추가하세요</div>':''}
@@ -302,6 +309,8 @@ function rBud(){
   document.getElementById('pg-budget').innerHTML=h+`<button class="ab" onclick="aGr()">＋ 분류 추가</button>`;
 }
 window.tg=function(id){D.og[id]=!D.og[id];window._sv();rBud()};
+window.eGr=function(id){const g=D.bg.find(x=>x.id===id);if(!g)return;CM={act:'eGr',id};oM('✏️ 분류 수정',`<div class="fg"><label>분류명</label><input id="f0" value="${g.n}"></div><div class="fg"><label>이모지</label><input id="f1" value="${g.ic}" maxlength="4"></div>`)};
+window.dGr=function(id){const g=D.bg.find(x=>x.id===id);if(!g)return;if(!confirm(`'${g.n}' 분류와 하위 항목을 모두 삭제할까요?`))return;D.bg=D.bg.filter(x=>x.id!==id);window._sv();ra();toast('분류 삭제됐어요')};
 
 // ── Spend ──
 function rSpd(){
@@ -394,6 +403,8 @@ window.doSave=function(){
   }else if(act==='editMonth'){
     const m=v('f0'),a=n('f1');if(!m){toast('월을 입력해주세요');return}
     D.income[pi].entries[ei]={m,a};
+  }else if(act==='eGr'){
+    const g=D.bg.find(x=>x.id===CM.id);if(g){g.n=v('f0')||g.n;g.ic=v('f1')||g.ic}
   }else if(act==='aGr'){
     const nm=v('f0'),ic=v('f1')||'📌';if(!nm){toast('분류명을 입력해주세요');return}
     D.bg.push({id:D.nid.g++,n:nm,ic,items:[]});
