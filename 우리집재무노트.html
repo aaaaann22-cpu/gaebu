@@ -399,7 +399,11 @@ function renderIncome(){
       </div>`).join('')}
     </div>`;
   });
-  html += `<button class="add-btn" onclick="openAddPerson()">＋ 수입자 추가</button>`;
+  html += `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px">
+      <button class="add-btn" style="margin-top:0" onclick="openAddMonthIncome('아현')">＋ 아현 수입 추가</button>
+      <button class="add-btn" style="margin-top:0;background:var(--navy)" onclick="openAddMonthIncome('대인')">＋ 대인 수입 추가</button>
+    </div>`;
   document.getElementById('pg-income').innerHTML = html;
 }
 
@@ -529,10 +533,11 @@ window.openEditMonth=function(name,idx){
   openModal(`💰 ${name} — ${MONTHS[idx]} 수입 수정`,`
     <div class="fg"><label>금액 (원)</label><input id="f0" type="number" value="${D.income[name][idx]||''}" placeholder="0"></div>`);
 };
-window.openAddPerson=function(){
-  curModal={action:'addPerson'};
-  openModal('👤 수입자 추가',`
-    <div class="fg"><label>이름</label><input id="f0" placeholder="예: 홍길동"></div>`);
+window.openAddMonthIncome=function(name){
+  curModal={action:"addMonthIncome",name};
+  const usedIdx=(D.income[name]||[]).map((v,i)=>v>0?i:-1).filter(i=>i>=0);
+  const options=MONTHS.map((m,i)=>`<option value="${i}">${m}${usedIdx.includes(i)?" (입력됨)":""}</option>`).join("");
+  openModal(`💰 ${name} 수입 추가`,`<div class="fg"><label>월 선택</label><select id="f0">${options}</select></div><div class="fg"><label>금액 (원)</label><input id="f1" type="number" placeholder="0"></div>`);
 };
 
 // 예산
@@ -588,9 +593,11 @@ window.doSave=function(){
   if(action==='editMonth'){
     if(!D.income[name])D.income[name]=new Array(11).fill(0);
     D.income[name][idx]=n('f0');
-  } else if(action==='addPerson'){
-    const pname=v('f0');if(!pname){toast('이름을 입력해주세요');return;}
-    if(!D.income[pname])D.income[pname]=new Array(11).fill(0);
+  } else if(action==='addMonthIncome'){
+    const idx=parseInt(document.getElementById('f0')?.value||'0');
+    const amt=n('f1');
+    if(!D.income[name])D.income[name]=new Array(11).fill(0);
+    D.income[name][idx]=amt;
   } else if(action==='addGroup'){
     const nm=v('f0'),ic=v('f1')||'📌';if(!nm){toast('분류명을 입력해주세요');return;}
     D.budgetGroups.push({id:D.nextId.group++,name:nm,icon:ic,items:[]});
