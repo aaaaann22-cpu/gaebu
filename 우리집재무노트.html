@@ -530,8 +530,8 @@ window.eSp=function(sid){const s=D.spends.find(x=>x.id===sid);if(!s)return;CM={a
 window.dSp=function(sid){if(!confirm('삭제?'))return;D.spends=D.spends.filter(x=>x.id!==sid);window._sv();ra();toast('삭제됐어요')};
 // fixed modals
 window.aFc=function(){CM={act:'aFc'};oM('➕ 카테고리 추가','<div class="fg"><label>카테고리명</label><input id="f0" placeholder="예: 월세"></div><div class="fg"><label>이모지</label><input id="f1" placeholder="예: 🏠" maxlength="4"></div>','nv')};
-window.aFi=function(cid){CM={act:'aFi',cid};oM('➕ 고정비 항목','<div class="fg"><label>항목명</label><input id="f0" placeholder="예: 월세"></div><div class="fg"><label>월 금액</label><input id="f1" type="number" placeholder="0"></div><div class="fg"><label>납부자</label><select id="f3"><option value="공통">공통</option><option value="아현">👩 아현</option><option value="대인">👨 대인</option></select></div><div class="fg"><label>갱신일 (선택)</label><input id="f2" type="date"></div>','nv')};
-window.eFi=function(cid,iid){const c=D.fc.find(x=>x.id===cid),it=c?.items.find(x=>x.id===iid);if(!it)return;CM={act:'eFi',cid,iid};oM('✏️ 고정비 수정',`<div class="fg"><label>항목명</label><input id="f0" value="${it.n}"></div><div class="fg"><label>월 금액</label><input id="f1" type="number" value="${it.a}"></div><div class="fg"><label>납부자</label><select id="f3"><option value="공통" ${(it.person||'공통')==='공통'?'selected':''}>공통</option><option value="아현" ${it.person==='아현'?'selected':''}>👩 아현</option><option value="대인" ${it.person==='대인'?'selected':''}>👨 대인</option></select></div><div class="fg"><label>갱신일</label><input id="f2" type="date" value="${it.r||''}"></div>`,'nv')};
+window.aFi=function(cid){CM={act:'aFi',cid};oM('➕ 고정비 항목','<div class="fg"><label>항목명</label><input id="f0" placeholder="예: 월세"></div><div class="fg"><label>월 금액</label><input id="f1" type="number" placeholder="0"></div><div class="fg"><label>납부자</label><select id="f3"><option value="공통">공통</option><option value="아현">👩 아현</option><option value="대인">👨 대인</option></select></div>','nv')};
+window.eFi=function(cid,iid){const c=D.fc.find(x=>x.id===cid),it=c?.items.find(x=>x.id===iid);if(!it)return;CM={act:'eFi',cid,iid};oM('✏️ 고정비 수정',`<div class="fg"><label>항목명</label><input id="f0" value="${it.n}"></div><div class="fg"><label>월 금액</label><input id="f1" type="number" value="${it.a}"></div><div class="fg"><label>납부자</label><select id="f3"><option value="공통" ${(it.person||'공통')==='공통'?'selected':''}>공통</option><option value="아현" ${it.person==='아현'?'selected':''}>👩 아현</option><option value="대인" ${it.person==='대인'?'selected':''}>👨 대인</option></select></div>`,'nv')};
 window.dFi=function(cid,iid){if(!confirm('삭제?'))return;const c=D.fc.find(x=>x.id===cid);if(c)c.items=c.items.filter(x=>x.id!==iid);window._sv();ra();toast('삭제됐어요')};
 
 // ── Save ──
@@ -578,11 +578,11 @@ window.doSave=function(){
     const nm=v('f0'),ic=v('f1')||'💳';if(!nm){toast('카테고리명을 입력해주세요');return}
     D.fc.push({id:'c'+D.nid.fc++,n:nm,ic,co:'#718096',items:[]});
   }else if(act==='aFi'){
-    const nm=v('f0'),a=n('f1'),r=v('f2'),person=v('f3')||'공통';if(!nm){toast('항목명을 입력해주세요');return}
-    const c=D.fc.find(x=>x.id===cid);if(c)c.items.push({id:'i'+D.nid.fi++,n:nm,a,r,person});
+    const nm=v('f0'),a=n('f1'),person=v('f3')||'공통';if(!nm){toast('항목명을 입력해주세요');return}
+    const c=D.fc.find(x=>x.id===cid);if(c)c.items.push({id:'i'+D.nid.fi++,n:nm,a,person});
   }else if(act==='eFi'){
     const c=D.fc.find(x=>x.id===cid),it=c?.items.find(x=>x.id===iid);
-    if(it){it.n=v('f0');it.a=n('f1');it.r=v('f2');it.person=v('f3')||'공통'}
+    if(it){it.n=v('f0');it.a=n('f1');it.person=v('f3')||'공통'}
   }
   window._sv();closeModal();ra();toast('저장됐어요 ✓');
 };
