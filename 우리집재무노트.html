@@ -114,13 +114,15 @@ body{font-family:-apple-system,'Noto Sans KR',BlinkMacSystemFont,sans-serif;back
 <button class="tab on" onclick="goTab('summary')"><span class="ti">📊</span>요약</button>
 <button class="tab" onclick="goTab('income')"><span class="ti">💰</span>수입</button>
 <button class="tab" onclick="goTab('budget')"><span class="ti">💍</span>웨딩예산</button>
-<button class="tab" onclick="goTab('spend')"><span class="ti">💸</span>지출비</button>
+<button class="tab" onclick="goTab('spend')"><span class="ti">💸</span>생활비</button>
+<button class="tab" onclick="goTab('invest')"><span class="ti">📈</span>투자</button>
 <button class="tab" onclick="goTab('fixed')"><span class="ti">🔄</span>고정비</button>
 </nav>
 <div class="pg on" id="pg-summary"></div>
 <div class="pg" id="pg-income"></div>
 <div class="pg" id="pg-budget"></div>
 <div class="pg" id="pg-spend"></div>
+<div class="pg" id="pg-invest"></div>
 <div class="pg" id="pg-fixed"></div>
 <div class="ov" id="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="handle"></div><div class="mt" id="mt"></div><div id="mb"></div><div class="mac"><button class="btn-c" onclick="closeModal()">취소</button><button class="btn-s" id="ms" onclick="doSave()">저장</button></div></div></div>
 <div class="toast" id="toast"></div>
@@ -158,6 +160,8 @@ function dd(){return{
     {id:13,n:'혼수',ic:'🏠',items:[]},
   ],
   spends:[],
+  invest:[],
+  invGoal:3390000,
   fc:[
     {id:'c1',n:'보험',ic:'🏥',co:'#D94F4F',items:[{id:'i1',n:'메리츠 암보험',a:38560,r:'2026-07-05'},{id:'i2',n:'DB 운전자보험',a:12900,r:'2026-07-11'},{id:'i3',n:'삼성생명 실손보험',a:72280,r:'2026-06-15'}]},
     {id:'c2',n:'적금',ic:'🏠',co:'#3DAA6E',items:[{id:'i4',n:'주택청약',a:250000,r:'2026-07-10'}]},
@@ -166,8 +170,8 @@ function dd(){return{
     {id:'c5',n:'구독',ic:'🛎️',co:'#9B5A6E',items:[{id:'i7',n:'카카오톡서랍',a:1900,r:''},{id:'i8',n:'넷플릭스',a:7000,r:''},{id:'i9',n:'배민&유튜브',a:13990,r:''},{id:'i10',n:'아이클라우드',a:4400,r:''}]},
     {id:'c6',n:'기타',ic:'💸',co:'#718096',items:[{id:'i11',n:'굿네이버스 기부',a:10000,r:'2026-07-10'},{id:'i12',n:'엄마생활비',a:300000,r:'2026-07-10'}]},
   ],
-  nid:{g:100,i:9000,s:1,fc:50,fi:200},
-  og:{},ofc:{}
+  nid:{g:100,i:9000,s:1,fc:50,fi:200,iv:1},
+  og:{},ofc:{},osp:{}
 }}
 
 let D=null,CM={},ST=null;
@@ -185,7 +189,11 @@ onSnapshot(DOC,snap=>{D=snap.exists()?snap.data():dd();if(!snap.exists())setDoc(
 
 window._sv=function(){if(!D)return;ss('sync');clearTimeout(ST);ST=setTimeout(async()=>{try{await setDoc(DOC,D);localStorage.setItem('wfn3',JSON.stringify(D));ss('ok')}catch(e){ss('err');toast('저장 실패')}},600)};
 
-const TABS=['summary','income','budget','spend','fixed'];
+const TABS=['summary','income','budget','spend','invest','fixed'];
+const SP_BUDGET=950000;
+const INVCATS=[{n:'청약',ic:'🏠'},{n:'정기적금',ic:'💰'},{n:'자유적금',ic:'💵'},{n:'파킹통장',ic:'🅿️'},{n:'ISA',ic:'📈'},{n:'ETF',ic:'📊'},{n:'연금저축',ic:'👴'},{n:'IRP',ic:'🏦'}];
+function curYM(){const d=new Date();return`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}`}
+function ymLabel(ym){const[y,m]=ym.split('.');return`${y}년 ${parseInt(m)}월`}
 window.goTab=function(t){document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));document.getElementById('pg-'+t).classList.add('on');document.querySelectorAll('.tab')[TABS.indexOf(t)].classList.add('on');ra()};
 
 // calcs
@@ -314,16 +322,29 @@ window.dGr=function(id){const g=D.bg.find(x=>x.id===id);if(!g)return;if(!confirm
 
 // ── Spend ──
 function rSpd(){
+  const ym=curYM();
+  const curList=D.spends.filter(s=>spMonth(s.d)===ym);
+  const curTot=curList.reduce((a,s)=>a+s.a,0);
+  const curPc=SP_BUDGET>0?Math.min(100,Math.round(curTot/SP_BUDGET*100)):0;
+  const budRem=SP_BUDGET-curTot;
+  let h=`<div class="card" style="margin-bottom:10px">
+    <div class="kv-lbl">💸 ${ymLabel(ym)} 생활비 현황</div>
+    <div style="display:flex;align-items:flex-end;gap:8px;margin-top:4px">
+      <div class="kv-val ${curTot>SP_BUDGET?'c-r':'c-s'}">${W(curTot)}</div>
+      <div style="font-size:13px;color:var(--g3);margin-bottom:2px">/ ${W(SP_BUDGET)}</div>
+      <div style="font-size:13px;font-weight:800;color:${curTot>SP_BUDGET?'var(--red)':'var(--sage)'};margin-bottom:2px;margin-left:auto">${curPc}%</div>
+    </div>
+    <div class="pb-wrap" style="margin-top:8px"><div class="pb ${curTot>SP_BUDGET?'pb-navy':'pb-sage'}" style="width:${curPc}%"></div></div>
+    <div style="font-size:11px;color:var(--g4);margin-top:5px">${budRem>=0?`남은 예산 ${W(budRem)}`:`예산 ${W(-budRem)} 초과`} · ${curList.length}건</div>
+  </div>`;
   if(D.spends.length===0){
-    document.getElementById('pg-spend').innerHTML='<div class="empty"><div class="ei">📝</div>지출 기록을 추가해보세요</div><button class="ab" onclick="aSp()">＋ 지출 추가</button>';
+    document.getElementById('pg-spend').innerHTML=h+'<div class="empty"><div class="ei">📝</div>지출 기록을 추가해보세요</div><button class="ab" onclick="aSp()">＋ 지출 추가</button>';
     return;
   }
   // group by month
   const byMonth={};
   D.spends.forEach(s=>{const mk=spMonth(s.d);(byMonth[mk]=byMonth[mk]||[]).push(s)});
   const months=Object.keys(byMonth).sort((a,b)=>b.localeCompare(a));
-  const tot=tSpd();
-  let h=`<div class="card card-sm" style="margin-bottom:0"><div class="kv-lbl">총 지출</div><div class="kv-val c-s">${W(tot)}</div><div class="kv-sub">${D.spends.length}건 · ${months.length}개월</div></div>`;
   months.forEach(mk=>{
     const list=byMonth[mk];
     const mtot=list.reduce((a,s)=>a+s.a,0);
@@ -332,7 +353,8 @@ function rSpd(){
     list.forEach(s=>{const c=s.c||'기타';cat[c]=(cat[c]||0)+s.a});
     const catArr=Object.entries(cat).sort((a,b)=>b[1]-a[1]);
     const op=D.osp?(D.osp[mk]!==false):true;
-    h+=`<div class="sec">📅 ${mk} <span style="color:var(--sage);font-weight:900;margin-left:4px">${W(mtot)}</span></div>`;
+    const mpc=SP_BUDGET>0?Math.min(100,Math.round(mtot/SP_BUDGET*100)):0;
+    h+=`<div class="sec">📅 ${ymLabel(mk)} <span style="color:var(--sage);font-weight:900;margin-left:4px">${W(mtot)}</span><span style="color:var(--g4);font-size:10px;font-weight:600;margin-left:6px">예산 ${mpc}%</span></div>`;
     // category summary
     h+=`<div class="card card-sm">`;
     h+=catArr.map(([c,v])=>{const pc=mtot>0?Math.round(v/mtot*100):0;return `<div style="display:flex;align-items:center;gap:9px;padding:5px 0">
@@ -351,6 +373,71 @@ function rSpd(){
   document.getElementById('pg-spend').innerHTML=h+`<button class="ab" onclick="aSp()">＋ 지출 추가</button>`;
 }
 window.tgSp=function(mk){D.osp=D.osp||{};D.osp[mk]=D.osp[mk]===false;window._sv();rSpd()};
+
+// ── Invest ──
+function rInv(){
+  if(!D.invest)D.invest=[];
+  if(D.invGoal===undefined)D.invGoal=3390000;
+  const ym=curYM();
+  // all months that have data
+  const allYMs=[...new Set(D.invest.map(x=>x.ym))].sort((a,b)=>b.localeCompare(a));
+  if(!allYMs.includes(ym))allYMs.unshift(ym);
+
+  let h='';
+  allYMs.forEach(mk=>{
+    const list=D.invest.filter(x=>x.ym===mk);
+    const savCats=['청약','정기적금','자유적금','파킹통장'];
+    const savTot=list.filter(x=>savCats.includes(x.cat)).reduce((a,x)=>a+x.a,0);
+    const invTot=list.filter(x=>!savCats.includes(x.cat)).reduce((a,x)=>a+x.a,0);
+    const goal=D.invGoal;
+    const pc=goal>0?Math.min(100,Math.round(savTot/goal*100)):0;
+    const isCur=mk===ym;
+    h+=`<div class="sec">📅 ${ymLabel(mk)}${isCur?' <span style="background:var(--sage);color:#fff;font-size:9px;padding:2px 6px;border-radius:99px;margin-left:4px">이번달</span>':''}</div>
+    <div class="card" style="margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div><div class="kv-lbl">🎯 저축 목표</div><div style="font-size:16px;font-weight:900;color:var(--navy)">${W(goal)}</div></div>
+        <div><div class="kv-lbl">✅ 저축 실적</div><div style="font-size:16px;font-weight:900;color:${savTot>=goal?'var(--green)':'var(--sage)'}">${W(savTot)}</div></div>
+        <div><div class="kv-lbl">📊 달성률</div><div style="font-size:16px;font-weight:900;color:${pc>=100?'var(--green)':'var(--gold)'}">${pc}% ${pc>=100?'✅':''}</div></div>
+        <div><div class="kv-lbl">📈 투자 실적</div><div style="font-size:16px;font-weight:900;color:var(--navy)">${W(invTot)}</div></div>
+      </div>
+      <div class="pb-wrap"><div class="pb pb-navy" style="width:${pc}%"></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">
+    ${INVCATS.map(cat=>{
+      const entry=list.find(x=>x.cat===cat.n);
+      const done=!!entry;
+      return`<div class="card card-sm" style="display:flex;align-items:center;gap:9px;padding:10px 11px">
+        <div style="font-size:20px">${done?'✅':'⏳'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:800;color:var(--g1)">${cat.ic} ${cat.n}</div>
+          <div style="font-size:11px;color:${done?'var(--sage)':'var(--g4)'};font-weight:700">${done?W(entry.a):'미입력'}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <button class="bx bx-e" onclick="eIv('${mk}','${cat.n}')">${done?'수정':'입력'}</button>
+          ${done?`<button class="bx bx-d" onclick="dIv('${mk}','${cat.n}')">삭제</button>`:''}
+        </div>
+      </div>`;
+    }).join('')}
+    </div>`;
+  });
+  h+=`<button class="ab nv" onclick="setInvGoal()">🎯 저축 목표 변경 (현재 ${W(D.invGoal)})</button>`;
+  document.getElementById('pg-invest').innerHTML=h;
+}
+window.eIv=function(ym,cat){
+  const entry=D.invest?.find(x=>x.ym===ym&&x.cat===cat);
+  CM={act:'eIv',ym,cat};
+  const ic=INVCATS.find(x=>x.n===cat)?.ic||'';
+  oM(`${ic} ${cat} 입력 (${ymLabel(ym)})`,`<div class="fg"><label>금액 (원)</label><input id="f0" type="number" value="${entry?entry.a:''}" placeholder="0"></div><div class="fg"><label>메모</label><input id="f1" placeholder="비고" value="${entry?entry.m||'':''}"></div>`,'nv');
+};
+window.dIv=function(ym,cat){
+  if(!confirm('삭제할까요?'))return;
+  D.invest=D.invest.filter(x=>!(x.ym===ym&&x.cat===cat));
+  window._sv();ra();toast('삭제됐어요');
+};
+window.setInvGoal=function(){
+  CM={act:'setInvGoal'};
+  oM('🎯 저축 목표 변경',`<div class="fg"><label>월 저축 목표 (원)</label><input id="f0" type="number" value="${D.invGoal||3390000}"></div>`,'nv');
+};
 
 // ── Fixed ──
 function rFix(){
@@ -422,6 +509,15 @@ window.doSave=function(){
     D.spends.push({id:D.nid.s++,n:nm,a,d,c,m});
   }else if(act==='eSp'){
     const s=D.spends.find(x=>x.id===sid);if(s){s.n=v('f0');s.a=n('f1');s.d=v('f2');s.c=SPCATS.find(x=>v('f3').includes(x))||'기타';s.m=v('f4')}
+  }else if(act==='eIv'){
+    if(!D.invest)D.invest=[];
+    const a=n('f0'),memo=v('f1'),{ym,cat}=CM;
+    if(!a){toast('금액을 입력해주세요');return}
+    const idx=D.invest.findIndex(x=>x.ym===ym&&x.cat===cat);
+    if(idx>=0)D.invest[idx]={ym,cat,a,m:memo};
+    else D.invest.push({id:D.nid.iv++,ym,cat,a,m:memo});
+  }else if(act==='setInvGoal'){
+    const g=n('f0');if(g>0)D.invGoal=g;
   }else if(act==='aFc'){
     const nm=v('f0'),ic=v('f1')||'💳';if(!nm){toast('카테고리명을 입력해주세요');return}
     D.fc.push({id:'c'+D.nid.fc++,n:nm,ic,co:'#718096',items:[]});
@@ -435,7 +531,7 @@ window.doSave=function(){
   window._sv();closeModal();ra();toast('저장됐어요 ✓');
 };
 
-function ra(){rSum();rInc();rBud();rSpd();rFix()}
+function ra(){rSum();rInc();rBud();rSpd();rInv();rFix()}
 </script>
 </body>
 </html>
