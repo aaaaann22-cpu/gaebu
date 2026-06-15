@@ -249,7 +249,6 @@ function rSum(){
     <div class="card"><div class="kv-lbl">📋 웨딩 예산</div><div class="kv-val c-n" style="font-size:16px">${W(bud)}</div><div class="kv-sub">${D.bg.length}개 분류</div></div>
     <div class="card"><div class="kv-lbl">✅ 납부완료</div><div class="kv-val c-g" style="font-size:16px">${W(paid)}</div><div class="kv-sub">${pp}% 납부</div><div class="pb-wrap"><div class="pb pb-green" style="width:${pp}%"></div></div></div>
     <div class="card"><div class="kv-lbl">⏳ 잔금</div><div class="kv-val ${rem>0?'c-r':'c-g'}" style="font-size:16px">${W(rem)}</div><div class="kv-sub">${up.length}건 남음</div></div>
-    <div class="card"><div class="kv-lbl">🔄 월 고정비</div><div class="kv-val c-n" style="font-size:16px">${W(fm)}</div><div class="kv-sub">연 ${W(fm*12)}</div></div>
     <div class="card"><div class="kv-lbl">💳 여유자금 (수입−납부)</div><div class="kv-val ${bal>=0?'c-g':'c-r'}" style="font-size:16px">${W(bal)}</div></div>
   </div>
   <div class="sec">⏳ 잔금 남은 항목</div>
@@ -489,7 +488,17 @@ window.setInvGoal=function(){
 // ── Fixed ──
 function rFix(){
   const tot=tFix();
-  let h=`<div class="card" style="margin-bottom:2px"><div class="kv-lbl">월 고정비 합계</div><div class="kv-val c-n">${W(tot)}</div><div class="kv-sub">연 ${W(tot*12)}</div></div><div class="sec">카테고리별</div>`;
+  const ahTot=D.fc.reduce((s,c)=>s+c.items.filter(i=>(i.person||'공통')==='아현').reduce((a,i)=>a+i.a,0),0);
+  const diTot=D.fc.reduce((s,c)=>s+c.items.filter(i=>(i.person||'공통')==='대인').reduce((a,i)=>a+i.a,0),0);
+  const coTot=D.fc.reduce((s,c)=>s+c.items.filter(i=>(i.person||'공통')==='공통').reduce((a,i)=>a+i.a,0),0);
+  let h=`<div class="card" style="margin-bottom:10px">
+    <div class="kv-lbl">월 고정비 합계</div><div class="kv-val c-n">${W(tot)}</div><div class="kv-sub">연 ${W(tot*12)}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--g5)">
+      <div style="text-align:center"><div style="font-size:10px;font-weight:800;color:var(--sage);margin-bottom:3px">👩 아현</div><div style="font-size:14px;font-weight:900;color:var(--g1)">${W(ahTot)}</div></div>
+      <div style="text-align:center"><div style="font-size:10px;font-weight:800;color:var(--navy);margin-bottom:3px">👨 대인</div><div style="font-size:14px;font-weight:900;color:var(--g1)">${W(diTot)}</div></div>
+      <div style="text-align:center"><div style="font-size:10px;font-weight:800;color:var(--g3);margin-bottom:3px">공통</div><div style="font-size:14px;font-weight:900;color:var(--g1)">${W(coTot)}</div></div>
+    </div>
+  </div><div class="sec">카테고리별</div>`;
   D.fc.forEach(cat=>{
     const ct=cat.items.reduce((s,i)=>s+i.a,0);const op=D.ofc[cat.id];
     h+=`<div class="fc"><div class="fc-h" onclick="tfc('${cat.id}')">
@@ -497,7 +506,7 @@ function rFix(){
       <div style="flex:1"><div style="font-size:14px;font-weight:800">${cat.n} <span class="bi-chev ${op?'open':''}">▼</span></div><div style="font-size:11px;color:var(--g3)">${cat.items.length}개 항목</div></div>
       <div class="chip">${W(ct)}/월</div>
     </div>
-    ${op?`<div class="fc-items">${cat.items.map(it=>{const per=it.person||'공통';const perColor=per==='아현'?'var(--sage)':per==='대인'?'var(--navy)':'var(--g4)';const perBg=per==='아현'?'var(--sage-l)':per==='대인'?'var(--navy-l)':'var(--g5)';return`<div class="fc-row"><div><div style="font-size:13px;font-weight:600">${it.n} <span style="background:${perBg};color:${perColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px">${per}</span></div>${it.r?`<div style="font-size:10px;color:var(--g4);margin-top:1px">갱신 ${it.r}</div>`:''}<div class="bk-act" style="margin-top:4px"><button class="bx bx-e" onclick="eFi('${cat.id}','${it.id}')">수정</button><button class="bx bx-d" onclick="dFi('${cat.id}','${it.id}')">삭제</button></div></div><div style="text-align:right"><div style="font-size:13px;font-weight:800;color:var(--navy)">${W(it.a)}</div><div style="font-size:10px;color:var(--g4)">매월</div></div></div>`}).join('')}
+    ${op?`<div class="fc-items">${cat.items.map(it=>{const per=it.person||'공통';const perColor=per==='아현'?'var(--sage)':per==='대인'?'var(--navy)':'var(--g4)';const perBg=per==='아현'?'var(--sage-l)':per==='대인'?'var(--navy-l)':'var(--g5)';return`<div class="fc-row"><div><div style="font-size:13px;font-weight:600">${it.n} <span style="background:${perBg};color:${perColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px">${per}</span></div><div class="bk-act" style="margin-top:4px"><button class="bx bx-e" onclick="eFi('${cat.id}','${it.id}')">수정</button><button class="bx bx-d" onclick="dFi('${cat.id}','${it.id}')">삭제</button></div></div><div style="text-align:right"><div style="font-size:13px;font-weight:800;color:var(--navy)">${W(it.a)}</div><div style="font-size:10px;color:var(--g4)">매월</div></div></div>`}).join('')}
     <div style="padding:8px 13px 10px 47px"><button class="bx bx-e" style="background:var(--navy-l);color:var(--navy)" onclick="aFi('${cat.id}')">＋ 항목 추가</button></div></div>`:''}
     </div>`;
   });
