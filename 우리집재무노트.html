@@ -203,6 +203,13 @@ function tBud(){return D.bg.reduce((s,g)=>s+g.items.reduce((a,i)=>a+i.t,0),0)}
 function tPaid(){return D.bg.reduce((s,g)=>s+g.items.reduce((a,i)=>a+i.p,0),0)}
 function tFix(){return D.fc.reduce((s,c)=>s+c.items.reduce((a,i)=>a+i.a,0),0)}
 function tSpd(){return D.spends.reduce((s,x)=>s+x.a,0)}
+// match income entry month string (e.g. "26년6월") to ym (e.g. "2026.06")
+function matchIncYM(mStr,ym){const m=String(mStr).match(/(\d+)년(\d+)월/);if(!m)return false;const y=parseInt(m[1])+(parseInt(m[1])<100?2000:0),mo=parseInt(m[2]);const[fy,fm]=ym.split('.').map(Number);return y===fy&&mo===fm}
+function curMonthInc(ym){return D.income.reduce((s,p)=>s+p.entries.filter(e=>matchIncYM(e.m,ym)).reduce((a,e)=>a+e.a,0),0)}
+function curMonthIncPerson(ym,person){const p=D.income.find(x=>x.person===person);return p?p.entries.filter(e=>matchIncYM(e.m,ym)).reduce((a,e)=>a+e.a,0):0}
+function curMonthInvSav(ym){if(!D.invest)return 0;const savCats=['청약','정기적금','자유적금','파킹통장'];return D.invest.filter(x=>x.ym===ym&&savCats.includes(x.cat)).reduce((s,x)=>s+x.a,0)}
+function curMonthInvAll(ym){if(!D.invest)return 0;return D.invest.filter(x=>x.ym===ym).reduce((s,x)=>s+x.a,0)}
+function curMonthSpd(ym){return D.spends.filter(s=>spMonth(s.d)===ym).reduce((a,s)=>a+s.a,0)}
 
 // ── Summary ──
 function rSum(){
@@ -210,7 +217,31 @@ function rSum(){
   const pp=bud>0?Math.min(100,Math.round(paid/bud*100)):0,ip=bud>0?Math.min(100,Math.round(inc/bud*100)):0,fm=tFix();
   document.getElementById('hs').textContent=`수입 ${W(inc)} · 웨딩예산 ${W(bud)}`;
   const up=D.bg.flatMap(g=>g.items.map(i=>({...i,gn:g.n,gi:g.ic}))).filter(i=>i.t-i.p>0).sort((a,b)=>(b.t-b.p)-(a.t-a.p));
+  // 이번달 현황
+  const ym=curYM();
+  const mInc=curMonthInc(ym),mAh=curMonthIncPerson(ym,'아현'),mDi=curMonthIncPerson(ym,'대인');
+  const mFix=tFix();
+  const mSav=curMonthInvSav(ym),mInv=curMonthInvAll(ym);
+  const mSpd=curMonthSpd(ym);
+  const mRem=mInc-mFix-mInv-mSpd;
+  function flowRow(label,amt,color,sub){return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--g5)">
+    <div><div style="font-size:13px;font-weight:700;color:var(--g2)">${label}</div>${sub?`<div style="font-size:10px;color:var(--g4);margin-top:2px">${sub}</div>`:''}</div>
+    <div style="font-size:15px;font-weight:900;color:${color}">${amt}</div>
+  </div>`}
   document.getElementById('pg-summary').innerHTML=`
+  <div class="sec">📅 ${ymLabel(ym)} 이번달 현황</div>
+  <div class="card" style="margin-bottom:10px;padding:14px">
+    ${flowRow('💰 월 수입',W(mInc),'var(--green)',`아현 ${W(mAh)} + 대인 ${W(mDi)}`)}
+    ${flowRow('🔄 고정비','− '+W(mFix),'var(--navy)',`월 고정지출`)}
+    ${flowRow('📈 저축·투자','− '+W(mInv),'var(--sage)',`저축 ${W(mSav)} 포함`)}
+    ${flowRow('💸 생활비','− '+W(mSpd),'var(--gold)',`예산 ${W(SP_BUDGET)} 중`)}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 2px">
+      <div style="font-size:13px;font-weight:800;color:var(--g1)">💵 이번달 잔액</div>
+      <div style="font-size:18px;font-weight:900;color:${mRem>=0?'var(--green)':'var(--red)'}">${W(mRem)}</div>
+    </div>
+    ${mInc===0?'<div style="font-size:10px;color:var(--g4);margin-top:4px">※ 이번달 수입을 수입탭에서 입력해주세요</div>':''}
+  </div>
+  <div class="sec">💍 웨딩 전체 현황</div>
   <div class="sg">
     <div class="card full"><div class="kv-lbl">💰 총 모인 돈</div><div class="kv-val c-s">${W(inc)}</div>
     <div class="kv-sub">${D.income.map(p=>`${p.person} ${W(pInc(p.person))}`).join(' + ')}</div>
@@ -218,9 +249,8 @@ function rSum(){
     <div class="card"><div class="kv-lbl">📋 웨딩 예산</div><div class="kv-val c-n" style="font-size:16px">${W(bud)}</div><div class="kv-sub">${D.bg.length}개 분류</div></div>
     <div class="card"><div class="kv-lbl">✅ 납부완료</div><div class="kv-val c-g" style="font-size:16px">${W(paid)}</div><div class="kv-sub">${pp}% 납부</div><div class="pb-wrap"><div class="pb pb-green" style="width:${pp}%"></div></div></div>
     <div class="card"><div class="kv-lbl">⏳ 잔금</div><div class="kv-val ${rem>0?'c-r':'c-g'}" style="font-size:16px">${W(rem)}</div><div class="kv-sub">${up.length}건 남음</div></div>
-    <div class="card"><div class="kv-lbl">💸 지출기록</div><div class="kv-val c-go" style="font-size:16px">${W(spd)}</div><div class="kv-sub">${D.spends.length}건</div></div>
     <div class="card"><div class="kv-lbl">🔄 월 고정비</div><div class="kv-val c-n" style="font-size:16px">${W(fm)}</div><div class="kv-sub">연 ${W(fm*12)}</div></div>
-    <div class="card full"><div class="kv-lbl">💳 여유자금 (수입 − 납부완료)</div><div class="kv-val ${bal>=0?'c-g':'c-r'}">${W(bal)}</div></div>
+    <div class="card"><div class="kv-lbl">💳 여유자금 (수입−납부)</div><div class="kv-val ${bal>=0?'c-g':'c-r'}" style="font-size:16px">${W(bal)}</div></div>
   </div>
   <div class="sec">⏳ 잔금 남은 항목</div>
   ${up.length===0?'<div class="empty"><div class="ei">🎉</div>모든 항목 납부 완료!</div>':up.map(e=>{const r=e.t-e.p,pc=e.t>0?Math.round(e.p/e.t*100):0;return`
@@ -467,7 +497,7 @@ function rFix(){
       <div style="flex:1"><div style="font-size:14px;font-weight:800">${cat.n} <span class="bi-chev ${op?'open':''}">▼</span></div><div style="font-size:11px;color:var(--g3)">${cat.items.length}개 항목</div></div>
       <div class="chip">${W(ct)}/월</div>
     </div>
-    ${op?`<div class="fc-items">${cat.items.map(it=>`<div class="fc-row"><div><div style="font-size:13px;font-weight:600">${it.n}</div>${it.r?`<div style="font-size:10px;color:var(--g4);margin-top:1px">갱신 ${it.r}</div>`:''}<div class="bk-act" style="margin-top:4px"><button class="bx bx-e" onclick="eFi('${cat.id}','${it.id}')">수정</button><button class="bx bx-d" onclick="dFi('${cat.id}','${it.id}')">삭제</button></div></div><div style="text-align:right"><div style="font-size:13px;font-weight:800;color:var(--navy)">${W(it.a)}</div><div style="font-size:10px;color:var(--g4)">매월</div></div></div>`).join('')}
+    ${op?`<div class="fc-items">${cat.items.map(it=>{const per=it.person||'공통';const perColor=per==='아현'?'var(--sage)':per==='대인'?'var(--navy)':'var(--g4)';const perBg=per==='아현'?'var(--sage-l)':per==='대인'?'var(--navy-l)':'var(--g5)';return`<div class="fc-row"><div><div style="font-size:13px;font-weight:600">${it.n} <span style="background:${perBg};color:${perColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px">${per}</span></div>${it.r?`<div style="font-size:10px;color:var(--g4);margin-top:1px">갱신 ${it.r}</div>`:''}<div class="bk-act" style="margin-top:4px"><button class="bx bx-e" onclick="eFi('${cat.id}','${it.id}')">수정</button><button class="bx bx-d" onclick="dFi('${cat.id}','${it.id}')">삭제</button></div></div><div style="text-align:right"><div style="font-size:13px;font-weight:800;color:var(--navy)">${W(it.a)}</div><div style="font-size:10px;color:var(--g4)">매월</div></div></div>`}).join('')}
     <div style="padding:8px 13px 10px 47px"><button class="bx bx-e" style="background:var(--navy-l);color:var(--navy)" onclick="aFi('${cat.id}')">＋ 항목 추가</button></div></div>`:''}
     </div>`;
   });
@@ -491,8 +521,8 @@ window.eSp=function(sid){const s=D.spends.find(x=>x.id===sid);if(!s)return;CM={a
 window.dSp=function(sid){if(!confirm('삭제?'))return;D.spends=D.spends.filter(x=>x.id!==sid);window._sv();ra();toast('삭제됐어요')};
 // fixed modals
 window.aFc=function(){CM={act:'aFc'};oM('➕ 카테고리 추가','<div class="fg"><label>카테고리명</label><input id="f0" placeholder="예: 월세"></div><div class="fg"><label>이모지</label><input id="f1" placeholder="예: 🏠" maxlength="4"></div>','nv')};
-window.aFi=function(cid){CM={act:'aFi',cid};oM('➕ 고정비 항목','<div class="fg"><label>항목명</label><input id="f0" placeholder="예: 월세"></div><div class="fg"><label>월 금액</label><input id="f1" type="number" placeholder="0"></div><div class="fg"><label>갱신일 (선택)</label><input id="f2" type="date"></div>','nv')};
-window.eFi=function(cid,iid){const c=D.fc.find(x=>x.id===cid),it=c?.items.find(x=>x.id===iid);if(!it)return;CM={act:'eFi',cid,iid};oM('✏️ 고정비 수정',`<div class="fg"><label>항목명</label><input id="f0" value="${it.n}"></div><div class="fg"><label>월 금액</label><input id="f1" type="number" value="${it.a}"></div><div class="fg"><label>갱신일</label><input id="f2" type="date" value="${it.r||''}"></div>`,'nv')};
+window.aFi=function(cid){CM={act:'aFi',cid};oM('➕ 고정비 항목','<div class="fg"><label>항목명</label><input id="f0" placeholder="예: 월세"></div><div class="fg"><label>월 금액</label><input id="f1" type="number" placeholder="0"></div><div class="fg"><label>납부자</label><select id="f3"><option value="공통">공통</option><option value="아현">👩 아현</option><option value="대인">👨 대인</option></select></div><div class="fg"><label>갱신일 (선택)</label><input id="f2" type="date"></div>','nv')};
+window.eFi=function(cid,iid){const c=D.fc.find(x=>x.id===cid),it=c?.items.find(x=>x.id===iid);if(!it)return;CM={act:'eFi',cid,iid};oM('✏️ 고정비 수정',`<div class="fg"><label>항목명</label><input id="f0" value="${it.n}"></div><div class="fg"><label>월 금액</label><input id="f1" type="number" value="${it.a}"></div><div class="fg"><label>납부자</label><select id="f3"><option value="공통" ${(it.person||'공통')==='공통'?'selected':''}>공통</option><option value="아현" ${it.person==='아현'?'selected':''}>👩 아현</option><option value="대인" ${it.person==='대인'?'selected':''}>👨 대인</option></select></div><div class="fg"><label>갱신일</label><input id="f2" type="date" value="${it.r||''}"></div>`,'nv')};
 window.dFi=function(cid,iid){if(!confirm('삭제?'))return;const c=D.fc.find(x=>x.id===cid);if(c)c.items=c.items.filter(x=>x.id!==iid);window._sv();ra();toast('삭제됐어요')};
 
 // ── Save ──
@@ -539,11 +569,11 @@ window.doSave=function(){
     const nm=v('f0'),ic=v('f1')||'💳';if(!nm){toast('카테고리명을 입력해주세요');return}
     D.fc.push({id:'c'+D.nid.fc++,n:nm,ic,co:'#718096',items:[]});
   }else if(act==='aFi'){
-    const nm=v('f0'),a=n('f1'),r=v('f2');if(!nm){toast('항목명을 입력해주세요');return}
-    const c=D.fc.find(x=>x.id===cid);if(c)c.items.push({id:'i'+D.nid.fi++,n:nm,a,r});
+    const nm=v('f0'),a=n('f1'),r=v('f2'),person=v('f3')||'공통';if(!nm){toast('항목명을 입력해주세요');return}
+    const c=D.fc.find(x=>x.id===cid);if(c)c.items.push({id:'i'+D.nid.fi++,n:nm,a,r,person});
   }else if(act==='eFi'){
     const c=D.fc.find(x=>x.id===cid),it=c?.items.find(x=>x.id===iid);
-    if(it){it.n=v('f0');it.a=n('f1');it.r=v('f2')}
+    if(it){it.n=v('f0');it.a=n('f1');it.r=v('f2');it.person=v('f3')||'공통'}
   }
   window._sv();closeModal();ra();toast('저장됐어요 ✓');
 };
