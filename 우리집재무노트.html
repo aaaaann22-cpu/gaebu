@@ -402,19 +402,35 @@ function rInv(){
       </div>
       <div class="pb-wrap"><div class="pb pb-navy" style="width:${pc}%"></div></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">
+    <div style="margin-bottom:4px">
     ${INVCATS.map(cat=>{
-      const entry=list.find(x=>x.cat===cat.n);
-      const done=!!entry;
-      return`<div class="card card-sm" style="display:flex;align-items:center;gap:9px;padding:10px 11px">
-        <div style="font-size:20px">${done?'✅':'⏳'}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:800;color:var(--g1)">${cat.ic} ${cat.n}</div>
-          <div style="font-size:11px;color:${done?'var(--sage)':'var(--g4)'};font-weight:700">${done?W(entry.a):'미입력'}</div>
+      const ah=list.find(x=>x.cat===cat.n&&x.person==='아현');
+      const di=list.find(x=>x.cat===cat.n&&x.person==='대인');
+      const bothDone=!!ah&&!!di;
+      const anyDone=!!ah||!!di;
+      return`<div class="card card-sm" style="margin-bottom:7px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          <div style="font-size:18px">${bothDone?'✅':anyDone?'⏳':'⏳'}</div>
+          <div style="font-size:13px;font-weight:800">${cat.ic} ${cat.n}</div>
+          <div style="margin-left:auto;font-size:13px;font-weight:900;color:var(--navy)">${anyDone?W((ah?.a||0)+(di?.a||0)):'-'}</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <button class="bx bx-e" onclick="eIv('${mk}','${cat.n}')">${done?'수정':'입력'}</button>
-          ${done?`<button class="bx bx-d" onclick="dIv('${mk}','${cat.n}')">삭제</button>`:''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div style="background:var(--sage-l);border-radius:8px;padding:8px 9px">
+            <div style="font-size:10px;font-weight:800;color:var(--sage);margin-bottom:3px">👩 아현</div>
+            <div style="font-size:13px;font-weight:800;color:${ah?'var(--g1)':'var(--g4)'}">${ah?W(ah.a):'미입력'}</div>
+            <div class="bk-act" style="margin-top:5px">
+              <button class="bx bx-e" onclick="eIv('${mk}','${cat.n}','아현')">${ah?'수정':'입력'}</button>
+              ${ah?`<button class="bx bx-d" onclick="dIv('${mk}','${cat.n}','아현')">삭제</button>`:''}
+            </div>
+          </div>
+          <div style="background:var(--navy-l);border-radius:8px;padding:8px 9px">
+            <div style="font-size:10px;font-weight:800;color:var(--navy);margin-bottom:3px">👨 대인</div>
+            <div style="font-size:13px;font-weight:800;color:${di?'var(--g1)':'var(--g4)'}">${di?W(di.a):'미입력'}</div>
+            <div class="bk-act" style="margin-top:5px">
+              <button class="bx bx-e" onclick="eIv('${mk}','${cat.n}','대인')">${di?'수정':'입력'}</button>
+              ${di?`<button class="bx bx-d" onclick="dIv('${mk}','${cat.n}','대인')">삭제</button>`:''}
+            </div>
+          </div>
         </div>
       </div>`;
     }).join('')}
@@ -423,15 +439,16 @@ function rInv(){
   h+=`<button class="ab nv" onclick="setInvGoal()">🎯 저축 목표 변경 (현재 ${W(D.invGoal)})</button>`;
   document.getElementById('pg-invest').innerHTML=h;
 }
-window.eIv=function(ym,cat){
-  const entry=D.invest?.find(x=>x.ym===ym&&x.cat===cat);
-  CM={act:'eIv',ym,cat};
+window.eIv=function(ym,cat,person){
+  const entry=D.invest?.find(x=>x.ym===ym&&x.cat===cat&&x.person===person);
+  CM={act:'eIv',ym,cat,person};
   const ic=INVCATS.find(x=>x.n===cat)?.ic||'';
-  oM(`${ic} ${cat} 입력 (${ymLabel(ym)})`,`<div class="fg"><label>금액 (원)</label><input id="f0" type="number" value="${entry?entry.a:''}" placeholder="0"></div><div class="fg"><label>메모</label><input id="f1" placeholder="비고" value="${entry?entry.m||'':''}"></div>`,'nv');
+  const emoji=person==='아현'?'👩':'👨';
+  oM(`${ic} ${cat} — ${emoji} ${person} (${ymLabel(ym)})`,`<div class="fg"><label>금액 (원)</label><input id="f0" type="number" value="${entry?entry.a:''}" placeholder="0"></div><div class="fg"><label>메모</label><input id="f1" placeholder="비고" value="${entry?entry.m||'':''}"></div>`,'nv');
 };
-window.dIv=function(ym,cat){
+window.dIv=function(ym,cat,person){
   if(!confirm('삭제할까요?'))return;
-  D.invest=D.invest.filter(x=>!(x.ym===ym&&x.cat===cat));
+  D.invest=D.invest.filter(x=>!(x.ym===ym&&x.cat===cat&&x.person===person));
   window._sv();ra();toast('삭제됐어요');
 };
 window.setInvGoal=function(){
@@ -511,11 +528,11 @@ window.doSave=function(){
     const s=D.spends.find(x=>x.id===sid);if(s){s.n=v('f0');s.a=n('f1');s.d=v('f2');s.c=SPCATS.find(x=>v('f3').includes(x))||'기타';s.m=v('f4')}
   }else if(act==='eIv'){
     if(!D.invest)D.invest=[];
-    const a=n('f0'),memo=v('f1'),{ym,cat}=CM;
+    const a=n('f0'),memo=v('f1'),{ym,cat,person}=CM;
     if(!a){toast('금액을 입력해주세요');return}
-    const idx=D.invest.findIndex(x=>x.ym===ym&&x.cat===cat);
-    if(idx>=0)D.invest[idx]={ym,cat,a,m:memo};
-    else D.invest.push({id:D.nid.iv++,ym,cat,a,m:memo});
+    const idx=D.invest.findIndex(x=>x.ym===ym&&x.cat===cat&&x.person===person);
+    if(idx>=0)D.invest[idx]={ym,cat,person,a,m:memo};
+    else D.invest.push({id:D.nid.iv++,ym,cat,person,a,m:memo});
   }else if(act==='setInvGoal'){
     const g=n('f0');if(g>0)D.invGoal=g;
   }else if(act==='aFc'){
