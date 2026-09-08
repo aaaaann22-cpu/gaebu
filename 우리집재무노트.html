@@ -501,65 +501,82 @@ function rFix(){
   </div>
   <div class="card" style="padding:0;overflow:hidden;margin-bottom:10px">
   <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-    <colgroup><col style="width:36%"><col style="width:23%"><col style="width:23%"><col style="width:18%"></colgroup>
+    <colgroup><col style="width:40%"><col style="width:30%"><col style="width:30%"></colgroup>
     <thead><tr style="background:var(--g6)">
       <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:800;color:var(--g3);border-bottom:2px solid var(--g5)">항목</th>
       <th style="padding:10px 6px;text-align:center;font-size:11px;font-weight:800;color:var(--sage);border-bottom:2px solid var(--g5)">👩 아현</th>
       <th style="padding:10px 6px;text-align:center;font-size:11px;font-weight:800;color:var(--navy);border-bottom:2px solid var(--g5)">👨 대인</th>
-      <th style="padding:10px 6px;border-bottom:2px solid var(--g5)"></th>
     </tr></thead>
     <tbody>`;
+  // 같은 이름의 항목은 한 행으로 합쳐 아현/대인을 나란히 보여준다
+  function payCell(cat,it,color){
+    if(!it)return `<span style="color:var(--g4)">-</span>`;
+    return `<div style="font-size:13px;font-weight:800;color:${color}">${W(it.a)}</div>
+      <div style="display:flex;gap:3px;justify-content:center;margin-top:4px">
+        <button class="bx bx-e" onclick="eFi('${cat.id}','${it.id}')">수정</button>
+        <button class="bx bx-d" onclick="dFi('${cat.id}','${it.id}')">삭제</button>
+      </div>`;
+  }
   D.fc.forEach(cat=>{
     const ct=cat.items.reduce((s,i)=>s+i.a,0);
     h+=`<tr style="background:${cat.co}18">
       <td colspan="3" style="padding:7px 12px">
-        <span style="font-size:13px;font-weight:800;color:var(--g1)">${cat.ic} ${cat.n}</span>
-        <span style="font-size:11px;font-weight:700;color:${cat.co};margin-left:8px">${W(ct)}/월</span>
-      </td>
-      <td style="padding:7px 6px;text-align:right">
-        <div style="display:flex;gap:4px;justify-content:flex-end">
-          <button class="bx bx-e" onclick="aFi('${cat.id}')">＋</button>
-          <button class="bx bx-d" onclick="dFc('${cat.id}')">삭제</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:13px;font-weight:800;color:var(--g1)">${cat.ic} ${cat.n}</span>
+          <span style="font-size:11px;font-weight:700;color:${cat.co}">${W(ct)}/월</span>
+          <span style="margin-left:auto;display:flex;gap:4px">
+            <button class="bx bx-e" onclick="aFi('${cat.id}')">＋ 항목</button>
+            <button class="bx bx-d" onclick="dFc('${cat.id}')">삭제</button>
+          </span>
         </div>
       </td>
     </tr>`;
     if(cat.items.length===0){
-      h+=`<tr><td colspan="4" style="padding:9px 12px 9px 22px;font-size:11px;color:var(--g4)">항목을 추가하세요</td></tr>`;
+      h+=`<tr><td colspan="3" style="padding:9px 12px 9px 22px;font-size:11px;color:var(--g4)">항목을 추가하세요</td></tr>`;
     }
+    // 항목명으로 묶기 (등장 순서 유지)
+    const groups=[],gmap={};
     cat.items.forEach(it=>{
+      if(!gmap[it.n]){gmap[it.n]={n:it.n,ah:[],di:[],co:[]};groups.push(gmap[it.n])}
       const per=it.person||'공통';
-      let ahCell,diCell;
-      if(per==='아현'){
-        ahCell=`<span style="font-size:13px;font-weight:800;color:var(--sage)">${W(it.a)}</span>`;
-        diCell=`<span style="color:var(--g4)">-</span>`;
-      }else if(per==='대인'){
-        ahCell=`<span style="color:var(--g4)">-</span>`;
-        diCell=`<span style="font-size:13px;font-weight:800;color:var(--navy)">${W(it.a)}</span>`;
-      }else{
-        ahCell=`<span style="font-size:12px;font-weight:700;color:var(--g3)">${W(it.a)}</span>`;
-        diCell=`<span style="font-size:12px;font-weight:700;color:var(--g3)">${W(it.a)}</span>`;
+      if(per==='아현')gmap[it.n].ah.push(it);
+      else if(per==='대인')gmap[it.n].di.push(it);
+      else gmap[it.n].co.push(it);
+    });
+    groups.forEach(g=>{
+      const rows=Math.max(g.ah.length,g.di.length);
+      for(let i=0;i<rows;i++){
+        const a=g.ah[i],d=g.di[i];
+        h+=`<tr style="border-bottom:1px solid var(--g5)">
+          <td style="padding:9px 12px 9px 20px">
+            <div style="font-size:13px;font-weight:600;color:var(--g1)">${i===0?g.n:''}</div>
+            ${a&&d?`<div style="font-size:10px;color:var(--g4);margin-top:1px">합계 ${W(a.a+d.a)}</div>`:''}
+          </td>
+          <td style="padding:9px 6px;text-align:center">${payCell(cat,a,'var(--sage)')}</td>
+          <td style="padding:9px 6px;text-align:center">${payCell(cat,d,'var(--navy)')}</td>
+        </tr>`;
       }
-      h+=`<tr style="border-bottom:1px solid var(--g5)">
-        <td style="padding:9px 12px 9px 20px">
-          <div style="font-size:13px;font-weight:600;color:var(--g1)">${it.n}</div>
-          ${per==='공통'?'<div style="font-size:10px;color:var(--g4);margin-top:1px">공통</div>':''}
-        </td>
-        <td style="padding:9px 6px;text-align:center">${ahCell}</td>
-        <td style="padding:9px 6px;text-align:center">${diCell}</td>
-        <td style="padding:9px 6px">
-          <div style="display:flex;gap:3px;justify-content:flex-end">
-            <button class="bx bx-e" onclick="eFi('${cat.id}','${it.id}')">수정</button>
-            <button class="bx bx-d" onclick="dFi('${cat.id}','${it.id}')">삭제</button>
-          </div>
-        </td>
-      </tr>`;
+      g.co.forEach(it=>{
+        h+=`<tr style="border-bottom:1px solid var(--g5)">
+          <td style="padding:9px 12px 9px 20px">
+            <div style="font-size:13px;font-weight:600;color:var(--g1)">${it.n}</div>
+            <div style="display:flex;gap:3px;margin-top:4px">
+              <button class="bx bx-e" onclick="eFi('${cat.id}','${it.id}')">수정</button>
+              <button class="bx bx-d" onclick="dFi('${cat.id}','${it.id}')">삭제</button>
+            </div>
+          </td>
+          <td colspan="2" style="padding:9px 6px;text-align:center">
+            <div style="font-size:13px;font-weight:800;color:var(--g3)">${W(it.a)}</div>
+            <div style="font-size:10px;color:var(--g4);margin-top:1px">공통</div>
+          </td>
+        </tr>`;
+      });
     });
   });
   h+=`<tr style="background:var(--g6);border-top:2px solid var(--g5)">
     <td style="padding:10px 12px;font-size:13px;font-weight:800;color:var(--g1)">합계</td>
     <td style="padding:10px 6px;text-align:center;font-size:14px;font-weight:900;color:var(--sage)">${W(ahTot)}</td>
     <td style="padding:10px 6px;text-align:center;font-size:14px;font-weight:900;color:var(--navy)">${W(diTot)}</td>
-    <td></td>
   </tr></tbody></table></div>`;
   h+=`<button class="ab nv" onclick="aFc()">＋ 카테고리 추가</button>`;
   document.getElementById('pg-fixed').innerHTML=h;
