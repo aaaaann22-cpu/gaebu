@@ -473,7 +473,7 @@ window.eIv=function(ym,cat,person){
   CM={act:'eIv',ym,cat,person};
   const ic=INVCATS.find(x=>x.n===cat)?.ic||'';
   const emoji=person==='아현'?'👩':'👨';
-  oM(`${ic} ${cat} — ${emoji} ${person} (${ymLabel(ym)})`,`<div class="fg"><label>금액 (원)</label><input id="f0" type="number" value="${entry?entry.a:''}" placeholder="0"></div><div class="fg"><label>메모</label><input id="f1" placeholder="비고" value="${entry?entry.m||':''}"></div>`,'nv');
+  oM(`${ic} ${cat} — ${emoji} ${person} (${ymLabel(ym)})`,`<div class="fg"><label>금액 (원)</label><input id="f0" type="number" value="${entry?entry.a:''}" placeholder="0"></div><div class="fg"><label>메모</label><input id="f1" placeholder="비고" value="${entry&&entry.m?entry.m:''}"></div>`,'nv');
 };
 window.dIv=function(ym,cat,person){
   if(!confirm('삭제할까요?'))return;
