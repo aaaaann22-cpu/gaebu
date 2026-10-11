@@ -175,8 +175,11 @@ function dd(){return{
 }}
 
 let D=null,CM={},ST=null;
-const SPCATS=['식비','교통비','생필품','쇼핑','미용','병원·건강','운동','문화생활','여행','경조사비','집','기타'];
-const SPCAT_IC={'식비':'🍚','교통비':'🚌','생필품':'🧴','쇼핑':'🛍️','미용':'💄','병원·건강':'🏥','운동':'🏋️','문화생활':'🎬','여행':'✈️','경조사비':'🎁','집':'🏠','기타':'💸'};
+const DEF_SPCATS=[{n:'식비',ic:'🍚'},{n:'교통비',ic:'🚌'},{n:'생필품',ic:'🧴'},{n:'쇼핑',ic:'🛍️'},{n:'미용',ic:'💄'},{n:'병원·건강',ic:'🏥'},{n:'운동',ic:'🏋️'},{n:'문화생활',ic:'🎬'},{n:'여행',ic:'✈️'},{n:'경조사비',ic:'🎁'},{n:'집',ic:'🏠'},{n:'기타',ic:'💸'}];
+// 지출 카테고리는 D.spcats에 저장해 사용자가 추가/수정/삭제할 수 있다
+function spCats(){if(!D.spcats)D.spcats=DEF_SPCATS.map(c=>({...c}));return D.spcats}
+function spIc(n){return spCats().find(c=>c.n===n)?.ic||'💸'}
+function spCatOpts(sel){const cs=spCats().slice();if(sel&&!cs.some(c=>c.n===sel))cs.push({n:sel,ic:'💸'});return cs.map(c=>`<option value="${c.n}" ${c.n===sel?'selected':''}>${c.ic} ${c.n}</option>`).join('')}
 function spMonth(d){const m=String(d).match(/(\d{4})\D?(\d{1,2})/);return m?`${m[1]}.${String(m[2]).padStart(2,'0')}`:'기타'}
 const W=n=>n===0?'₩0':'₩'+Number(n).toLocaleString('ko-KR');
 const P=s=>parseInt(String(s).replace(/[^\d]/g,'')||'0');
@@ -367,7 +370,7 @@ function rSpd(){
     <div style="font-size:11px;color:var(--g4);margin-top:5px">${budRem>=0?`남은 예산 ${W(budRem)}`:`예산 ${W(-budRem)} 초과`} · ${curList.length}건</div>
   </div>`;
   if(D.spends.length===0){
-    document.getElementById('pg-spend').innerHTML=h+'<div class="empty"><div class="ei">📝</div>지출 기록을 추가해보세요</div><button class="ab" onclick="aSp()">＋ 지출 추가</button>';
+    document.getElementById('pg-spend').innerHTML=h+'<div class="empty"><div class="ei">📝</div>지출 기록을 추가해보세요</div><button class="ab" onclick="aSp()">＋ 지출 추가</button><button class="ab nv" style="margin-top:8px" onclick="scList()">✏️ 지출 카테고리 편집</button>';
     return;
   }
   // group by month
@@ -387,7 +390,7 @@ function rSpd(){
     // category summary
     h+=`<div class="card card-sm">`;
     h+=catArr.map(([c,v])=>{const pc=mtot>0?Math.round(v/mtot*100):0;return `<div style="display:flex;align-items:center;gap:9px;padding:5px 0">
-        <div class="bi-icon" style="width:30px;height:30px;font-size:15px;background:var(--sage-l)">${SPCAT_IC[c]||'💸'}</div>
+        <div class="bi-icon" style="width:30px;height:30px;font-size:15px;background:var(--sage-l)">${spIc(c)}</div>
         <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">${c}</div><div class="pb-wrap" style="margin-top:4px"><div class="pb pb-sage" style="width:${pc}%"></div></div></div>
         <div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:800;color:var(--sage)">${W(v)}</div><div style="font-size:10px;color:var(--g4)">${pc}%</div></div>
       </div>`}).join('');
@@ -395,11 +398,11 @@ function rSpd(){
     // detail entries
     if(op){
       [...list].sort((a,b)=>String(b.d).localeCompare(String(a.d))).forEach(s=>{
-        h+=`<div class="sp"><div class="sp-top"><div class="sp-name">${s.n}</div><span class="sp-cat">${SPCAT_IC[s.c]||'💸'} ${s.c||'기타'}</span></div>${s.m?`<div class="sp-memo">${s.m}</div>`:''}<div class="sp-bot"><div class="sp-amt c-s">${W(s.a)}</div><div class="sp-date">${s.d}</div></div><div class="bk-act" style="margin-top:6px"><button class="bx bx-e" onclick="eSp(${s.id})">수정</button><button class="bx bx-d" onclick="dSp(${s.id})">삭제</button></div></div>`;
+        h+=`<div class="sp"><div class="sp-top"><div class="sp-name">${s.n}</div><span class="sp-cat">${spIc(s.c)} ${s.c||'기타'}</span></div>${s.m?`<div class="sp-memo">${s.m}</div>`:''}<div class="sp-bot"><div class="sp-amt c-s">${W(s.a)}</div><div class="sp-date">${s.d}</div></div><div class="bk-act" style="margin-top:6px"><button class="bx bx-e" onclick="eSp(${s.id})">수정</button><button class="bx bx-d" onclick="dSp(${s.id})">삭제</button></div></div>`;
       });
     }
   });
-  document.getElementById('pg-spend').innerHTML=h+`<button class="ab" onclick="aSp()">＋ 지출 추가</button>`;
+  document.getElementById('pg-spend').innerHTML=h+`<button class="ab" onclick="aSp()">＋ 지출 추가</button><button class="ab nv" style="margin-top:8px" onclick="scList()">✏️ 지출 카테고리 편집</button>`;
 }
 window.tgSp=function(mk){D.osp=D.osp||{};D.osp[mk]=D.osp[mk]===false;window._sv();rSpd()};
 
@@ -584,7 +587,7 @@ function rFix(){
 window.dFc=function(id){const c=D.fc.find(x=>x.id===id);if(!c)return;if(!confirm(`'${c.n}' 카테고리를 삭제할까요?`))return;D.fc=D.fc.filter(x=>x.id!==id);window._sv();ra();toast('삭제됐어요')};
 
 // ── Modal ──
-function oM(title,body,sc=''){document.getElementById('mt').textContent=title;document.getElementById('mb').innerHTML=body;document.getElementById('ms').className='btn-s'+(sc?' '+sc:'');document.getElementById('modal').classList.add('on')}
+function oM(title,body,sc=''){document.getElementById('mt').textContent=title;document.getElementById('mb').innerHTML=body;document.getElementById('ms').className='btn-s'+(sc?' '+sc:'');document.getElementById('ms').textContent='저장';document.getElementById('modal').classList.add('on')}
 window.closeModal=function(){document.getElementById('modal').classList.remove('on')};
 
 // budget modals
@@ -593,8 +596,27 @@ window.aIt=function(gid){CM={act:'aIt',gid};oM('➕ 하위 항목 추가','<div 
 window.eIt=function(gid,iid){const g=D.bg.find(x=>x.id===gid),it=g?.items.find(x=>x.id===iid);if(!it)return;CM={act:'eIt',gid,iid};oM('✏️ 항목 수정',`<div class="fg"><label>항목명</label><input id="f0" value="${it.n}"></div><div class="frow"><div class="fg"><label>총 계약금</label><input id="f1" type="number" value="${it.t}"></div><div class="fg"><label>납부금액</label><input id="f2" type="number" value="${it.p}"></div></div><div class="fg"><label>메모</label><textarea id="f3">${it.m||''}</textarea></div>`)};
 window.dIt=function(gid,iid){if(!confirm('삭제?'))return;const g=D.bg.find(x=>x.id===gid);if(g)g.items=g.items.filter(x=>x.id!==iid);window._sv();ra();toast('삭제됐어요')};
 // spend modals
-window.aSp=function(){CM={act:'aSp'};oM('➕ 지출 추가',`<div class="fg"><label>분류 (먼저 선택)</label><select id="f3">${SPCATS.map(c=>`<option>${SPCAT_IC[c]} ${c}</option>`).join('')}</select></div><div class="fg"><label>내용</label><input id="f0" placeholder="예: 점심 김밥"></div><div class="frow"><div class="fg"><label>금액</label><input id="f1" type="number" placeholder="0"></div><div class="fg"><label>날짜</label><input id="f2" type="date" value="${new Date().toISOString().slice(0,10)}"></div></div><div class="fg"><label>메모</label><textarea id="f4" placeholder="비고"></textarea></div>`)};
-window.eSp=function(sid){const s=D.spends.find(x=>x.id===sid);if(!s)return;CM={act:'eSp',sid};oM('✏️ 지출 수정',`<div class="fg"><label>분류</label><select id="f3">${SPCATS.map(c=>`<option ${s.c===c?'selected':''}>${SPCAT_IC[c]} ${c}</option>`).join('')}</select></div><div class="fg"><label>내용</label><input id="f0" value="${s.n}"></div><div class="frow"><div class="fg"><label>금액</label><input id="f1" type="number" value="${s.a}"></div><div class="fg"><label>날짜</label><input id="f2" type="date" value="${s.d}"></div></div><div class="fg"><label>메모</label><textarea id="f4">${s.m||''}</textarea></div>`)};
+window.aSp=function(){CM={act:'aSp'};oM('➕ 지출 추가',`<div class="fg"><label style="display:flex;align-items:center">분류 (먼저 선택)<button class="bx bx-e" style="margin-left:auto" onclick="scList('aSp')">✏️ 카테고리 편집</button></label><select id="f3">${spCatOpts(spCats()[0]?.n)}</select></div><div class="fg"><label>내용</label><input id="f0" placeholder="예: 점심 김밥"></div><div class="frow"><div class="fg"><label>금액</label><input id="f1" type="number" placeholder="0"></div><div class="fg"><label>날짜</label><input id="f2" type="date" value="${new Date().toISOString().slice(0,10)}"></div></div><div class="fg"><label>메모</label><textarea id="f4" placeholder="비고"></textarea></div>`)};
+window.eSp=function(sid){const s=D.spends.find(x=>x.id===sid);if(!s)return;CM={act:'eSp',sid};oM('✏️ 지출 수정',`<div class="fg"><label>분류</label><select id="f3">${spCatOpts(s.c)}</select></div><div class="fg"><label>내용</label><input id="f0" value="${s.n}"></div><div class="frow"><div class="fg"><label>금액</label><input id="f1" type="number" value="${s.a}"></div><div class="fg"><label>날짜</label><input id="f2" type="date" value="${s.d}"></div></div><div class="fg"><label>메모</label><textarea id="f4">${s.m||''}</textarea></div>`)};
+// spend category modals
+window.scList=function(back){
+  CM={act:'scList',back:back||''};
+  oM('✏️ 지출 카테고리 편집',spCats().map((c,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--g5)"><span style="font-size:18px">${c.ic}</span><span style="flex:1;font-size:14px;font-weight:700">${c.n}</span><button class="bx bx-e" onclick="eSc(${i})">수정</button><button class="bx bx-d" onclick="dSc(${i})">삭제</button></div>`).join('')+`<button class="bx bx-e" style="margin-top:12px;padding:8px 12px;font-size:12px;background:var(--sage-l);color:var(--sage)" onclick="eSc(-1)">＋ 카테고리 추가</button>`);
+  document.getElementById('ms').textContent='완료';
+};
+window.eSc=function(i){
+  const back=CM.back,c=i>=0?spCats()[i]:{n:'',ic:''};
+  CM={act:'eSc',i,back};
+  oM(i>=0?'✏️ 카테고리 수정':'➕ 카테고리 추가',`<div class="fg"><label>카테고리명</label><input id="f0" value="${c.n}" placeholder="예: 반려동물"></div><div class="fg"><label>이모지</label><input id="f1" value="${c.ic}" placeholder="예: 🐶" maxlength="4"></div>`);
+};
+window.dSc=function(i){
+  const c=spCats()[i];if(!c)return;
+  const used=D.spends.filter(s=>s.c===c.n).length;
+  if(!confirm(`'${c.n}' 카테고리를 삭제할까요?${used?`\n이 카테고리의 지출 ${used}건은 '기타'로 옮겨져요.`:''}`))return;
+  spCats().splice(i,1);
+  D.spends.forEach(s=>{if(s.c===c.n)s.c='기타'});
+  window._sv();ra();scList(CM.back);
+};
 window.dSp=function(sid){if(!confirm('삭제?'))return;D.spends=D.spends.filter(x=>x.id!==sid);window._sv();ra();toast('삭제됐어요')};
 // fixed modals
 window.aFc=function(){CM={act:'aFc'};oM('➕ 카테고리 추가','<div class="fg"><label>카테고리명</label><input id="f0" placeholder="예: 월세"></div><div class="fg"><label>이모지</label><input id="f1" placeholder="예: 🏠" maxlength="4"></div>','nv')};
@@ -608,6 +630,19 @@ window.doSave=function(){
   const v=id=>(document.getElementById(id)?.value||'').trim();
   const n=id=>P(document.getElementById(id)?.value||'0');
 
+  if(act==='scList'){
+    // 편집 화면은 저장할 것이 없으므로 닫거나, 지출 추가 화면에서 왔으면 그리로 돌아간다
+    if(CM.back==='aSp')aSp();else closeModal();
+    return;
+  }else if(act==='eSc'){
+    const nm=v('f0'),ic=v('f1')||'💸',cs=spCats();
+    if(!nm){toast('카테고리명을 입력해주세요');return}
+    if(cs.some((c,j)=>c.n===nm&&j!==CM.i)){toast('이미 있는 카테고리예요');return}
+    if(CM.i>=0){const old=cs[CM.i].n;cs[CM.i]={n:nm,ic};if(old!==nm)D.spends.forEach(s=>{if(s.c===old)s.c=nm})}
+    else cs.push({n:nm,ic});
+    window._sv();ra();toast('저장됐어요 ✓');scList(CM.back);
+    return;
+  }
   if(act==='addMonth'){
     const m=v('f0'),a=n('f1');if(!m){toast('월을 입력해주세요');return}
     D.income[pi].entries.push({m,a});
@@ -628,11 +663,11 @@ window.doSave=function(){
     const g=D.bg.find(x=>x.id===gid),it=g?.items.find(x=>x.id===iid);
     if(it){it.n=nm;it.t=t;it.p=p;it.m=m}
   }else if(act==='aSp'){
-    const nm=v('f0'),a=n('f1'),d=v('f2')||td();const c=SPCATS.find(x=>v('f3').includes(x))||'기타';const m=v('f4');
+    const nm=v('f0'),a=n('f1'),d=v('f2')||td();const c=v('f3')||'기타';const m=v('f4');
     if(!nm){toast('내용을 입력해주세요');return}
     D.spends.push({id:D.nid.s++,n:nm,a,d,c,m});
   }else if(act==='eSp'){
-    const s=D.spends.find(x=>x.id===sid);if(s){s.n=v('f0');s.a=n('f1');s.d=v('f2');s.c=SPCATS.find(x=>v('f3').includes(x))||'기타';s.m=v('f4')}
+    const s=D.spends.find(x=>x.id===sid);if(s){s.n=v('f0');s.a=n('f1');s.d=v('f2');s.c=v('f3')||'기타';s.m=v('f4')}
   }else if(act==='eIv'){
     if(!D.invest)D.invest=[];
     const a=n('f0'),memo=v('f1'),{ym,cat,person}=CM;
